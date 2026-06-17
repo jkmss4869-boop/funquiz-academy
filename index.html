@@ -1,0 +1,1635 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FunQuiz Academy</title>
+  
+  <!-- CDN Scripts từ bản gốc -->
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <!-- === GIAO DIỆN THEME-FUNQUIZ (MÀU TÍM & 3D FLOATING) === -->
+  <style>
+    /* --- PHÔNG CHỮ & RESET --- */
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap');
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    /* --- NỀN PHONG CÁCH TÍM HUYỀN ẢO --- */
+    body {
+      background: linear-gradient(180deg, #51318F 0%, #1A1236 100%);
+      font-family: 'Outfit', sans-serif;
+      color: #FFFFFF;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      overflow-x: hidden;
+      position: relative;
+      padding: 20px;
+    }
+
+    /* --- HIỆU ỨNG TRANG TRÍ 3D BAY LƠ LỬNG --- */
+    .deco-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 1;
+      overflow: hidden;
+    }
+
+    .deco-item {
+      position: absolute;
+      filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.35));
+      will-change: transform;
+      opacity: 0.9;
+    }
+
+    /* Định vị các hình trang trí theo ảnh mẫu */
+    .deco-cap-books {
+      top: 5%;
+      left: 8%;
+      width: 120px;
+      animation: floatSlow 8s ease-in-out infinite alternate;
+    }
+
+    .deco-globe {
+      top: 15%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 130px;
+      animation: floatMedium 7s ease-in-out infinite alternate;
+    }
+
+    .deco-open-book {
+      top: 36%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 200px;
+      animation: floatFast 6s ease-in-out infinite alternate;
+    }
+
+    .deco-stacked-books {
+      top: 48%;
+      right: 8%;
+      width: 90px;
+      animation: floatMedium 8s ease-in-out infinite alternate-reverse;
+    }
+
+    .deco-coin-1 {
+      top: 8%;
+      right: 12%;
+      width: 75px;
+      animation: floatSlow 9s ease-in-out infinite alternate;
+    }
+
+    .deco-coin-2 {
+      top: 10%;
+      left: 35%;
+      width: 45px;
+      animation: floatMedium 6s ease-in-out infinite alternate-reverse;
+    }
+
+    .deco-coin-3 {
+      top: 25%;
+      right: 15%;
+      width: 40px;
+      animation: floatFast 7s ease-in-out infinite alternate;
+    }
+
+    .deco-coin-4 {
+      top: 50%;
+      left: 10%;
+      width: 50px;
+      animation: floatSlow 8s ease-in-out infinite alternate-reverse;
+    }
+
+    .deco-star-1 {
+      top: 23%;
+      left: 18%;
+      width: 30px;
+      animation: floatFast 5s ease-in-out infinite alternate;
+    }
+
+    .deco-star-2 {
+      top: 15%;
+      right: 28%;
+      width: 25px;
+      animation: floatSlow 6s ease-in-out infinite alternate-reverse;
+    }
+
+    .deco-star-3 {
+      top: 33%;
+      left: 48%;
+      width: 25px;
+      animation: floatMedium 5s ease-in-out infinite alternate;
+    }
+
+    /* --- CÁC HOẠT ẢNH CHUYỂN ĐỘNG FLOAT --- */
+    @keyframes floatSlow {
+      0% { transform: translateY(0) rotate(0deg); }
+      100% { transform: translateY(-12px) rotate(3deg); }
+    }
+
+    @keyframes floatMedium {
+      0% { transform: translateY(0) rotate(0deg); }
+      100% { transform: translateY(-18px) rotate(-4deg); }
+    }
+
+    @keyframes floatFast {
+      0% { transform: translateY(0) rotate(0deg); }
+      100% { transform: translateY(-15px) rotate(5deg); }
+    }
+
+    /* --- KHUNG GIAO DIỆN CHÍNH (GLASSMORPHISM) --- */
+    #screen-start,
+    #screen-loading,
+    #screen-quiz,
+    #screen-result,
+    #game-sort,
+    #game-fill,
+    #game-rewrite {
+      position: relative;
+      z-index: 10;
+      background: rgba(255, 255, 255, 0.07);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 32px;
+      padding: 35px 25px;
+      max-width: 420px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      margin: 20px auto;
+      transition: all 0.3s ease;
+    }
+
+    /* Căn chỉnh riêng cho màn hình bắt đầu giống hệt Mockup */
+    #screen-start {
+      background: transparent !important;
+      border: none !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+      box-shadow: none !important;
+      padding-top: 360px; /* Nhường chỗ cho 3D Open Book */
+      margin-top: 0;
+    }
+
+    /* --- TYPOGRAPHY --- */
+    h1, h2 {
+      font-weight: 700;
+      color: #FFFFFF;
+      letter-spacing: -0.5px;
+      line-height: 1.25;
+    }
+
+    /* Style tiêu đề chào mừng cho màn hình bắt đầu */
+    .welcome-title-top {
+      font-size: 38px;
+      font-weight: 500;
+      text-align: left;
+      margin-bottom: 4px;
+      opacity: 0.95;
+    }
+
+    .welcome-title-bottom {
+      font-size: 38px;
+      font-weight: 500;
+      text-align: left;
+      margin-bottom: 20px;
+    }
+
+    .welcome-title-bottom strong {
+      font-weight: 800;
+      position: relative;
+    }
+
+    .start-subtext {
+      font-size: 16px;
+      color: rgba(255, 255, 255, 0.85);
+      text-align: left;
+      line-height: 1.5;
+      margin-bottom: 35px;
+      max-width: 90%;
+    }
+
+    h2 {
+      font-size: 24px;
+      margin-bottom: 15px;
+    }
+
+    p {
+      font-size: 16px;
+      color: rgba(255, 255, 255, 0.8);
+      line-height: 1.5;
+    }
+
+    /* --- NÚT BẤM PHONG CÁCH GOOGLE (CAPSULE WHITE) --- */
+    button {
+      background-color: #FFFFFF;
+      color: #1A1236;
+      border: none;
+      font-family: 'Outfit', sans-serif;
+      font-size: 16px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 16px 24px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 12px;
+      margin: 12px auto;
+      width: 100%;
+      max-width: 340px;
+      border-radius: 50px; /* Dạng capsule */
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25);
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(255, 255, 255, 0.2);
+      background-color: #F8F9FA;
+    }
+
+    button:active {
+      transform: translateY(1px);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    }
+
+    button:disabled {
+      background-color: rgba(255, 255, 255, 0.3) !important;
+      color: rgba(255, 255, 255, 0.6) !important;
+      cursor: not-allowed;
+      transform: none !important;
+      box-shadow: none !important;
+    }
+
+    /* --- LỰA CHỌN TRẮC NGHIỆM (QUIZ OPTIONS) --- */
+    #options-container button {
+      background-color: rgba(255, 255, 255, 0.08);
+      color: #FFFFFF;
+      border: 1.5px solid rgba(255, 255, 255, 0.15);
+      text-transform: none;
+      font-weight: 500;
+      border-radius: 18px;
+      padding: 14px 20px;
+      box-shadow: none;
+    }
+
+    #options-container button:hover {
+      background-color: rgba(255, 255, 255, 0.18);
+      border-color: rgba(255, 255, 255, 0.3);
+      color: #FFFFFF;
+    }
+
+    /* Nút bấm đáp án khi được kiểm tra (Đúng/Sai) */
+    #options-container button[style*="background-color: rgb(186, 255, 201)"],
+    #options-container button[style*="background-color: #baffc9"] {
+      background: linear-gradient(135deg, #2EC4B6 0%, #00F5D4 100%) !important;
+      color: #082E2B !important;
+      border-color: transparent !important;
+      font-weight: 700 !important;
+    }
+
+    #options-container button[style*="background-color: rgb(255, 179, 186)"],
+    #options-container button[style*="background-color: #ffb3ba"] {
+      background: linear-gradient(135deg, #E63946 0%, #FF4D6D 100%) !important;
+      color: #FFFFFF !important;
+      border-color: transparent !important;
+      font-weight: 700 !important;
+    }
+
+    /* --- NÚT TIẾP THEO (NEXT BUTTON) --- */
+    #next-btn, #fill-next-btn, #btn-next-sort, #btn-next-rewrite {
+      background: linear-gradient(90deg, #9b5de5 0%, #f15bb5 100%) !important;
+      color: #FFFFFF !important;
+      box-shadow: 0 4px 15px rgba(241, 91, 181, 0.3) !important;
+    }
+
+    #next-btn:hover, #fill-next-btn:hover, #btn-next-sort:hover, #btn-next-rewrite:hover {
+      box-shadow: 0 8px 25px rgba(241, 91, 181, 0.5) !important;
+    }
+
+    /* --- HỘP CHỌN CHỦ ĐỀ (SHEET SELECTOR) & Ô NHẬP TÊN --- */
+    .custom-select, .name-input {
+      background-color: rgba(255, 255, 255, 0.08);
+      color: #FFFFFF;
+      border: 1.5px solid rgba(255, 255, 255, 0.15);
+      border-radius: 18px;
+      padding: 14px 20px;
+      width: 100%;
+      max-width: 340px;
+      margin: 15px auto 25px auto;
+      display: block;
+      font-family: 'Outfit', sans-serif;
+      font-size: 16px;
+      outline: none;
+      transition: all 0.3s ease;
+      backdrop-filter: blur(5px);
+      -webkit-backdrop-filter: blur(5px);
+    }
+
+    .custom-select option {
+      background-color: #1A1236;
+      color: #FFFFFF;
+    }
+
+    .custom-select:focus, .name-input:focus {
+      border-color: rgba(255, 255, 255, 0.5);
+      background-color: rgba(255, 255, 255, 0.15);
+      box-shadow: 0 0 15px rgba(255, 255, 255, 0.1);
+    }
+
+    .name-input::placeholder {
+      color: rgba(255, 255, 255, 0.4);
+    }
+
+    /* --- HỘP THÔNG TIN GIẢI THÍCH (FEEDBACK) --- */
+    #feedback-container,
+    #sort-feedback,
+    #fill-feedback-container,
+    #rewrite-feedback {
+      margin-top: 20px;
+      padding: 20px;
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: 20px;
+      border-left: 5px solid #FFD166;
+      text-align: left;
+      line-height: 1.6;
+      font-size: 15px;
+      color: #FFFFFF;
+      backdrop-filter: blur(5px);
+    }
+
+    /* --- LỚP TIỆN ÍCH --- */
+    .hidden {
+      display: none !important;
+    }
+
+    .hint-text {
+      color: rgba(255, 255, 255, 0.6) !important;
+      font-style: italic;
+      font-size: 14px;
+      margin-top: 5px;
+    }
+
+    .success-msg {
+      color: #00F5D4 !important;
+      font-weight: 600;
+    }
+
+    .instruction-text {
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: #FFD166;
+      margin-bottom: 10px;
+      font-weight: 600;
+    }
+
+    #score-display, #fill-score-display, #sort-score-display, #rewrite-score-display {
+      font-size: 14px;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.7);
+      margin-bottom: 20px;
+    }
+
+    /* --- THIẾT KẾ NÚT CAI ĐẶT API (SETTINGS GEAR) --- */
+    .settings-btn {
+      position: fixed;
+      top: 15px;
+      right: 15px;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 100;
+      transition: all 0.3s ease;
+      color: #ffffff;
+      padding: 0;
+      margin: 0;
+      box-shadow: none;
+    }
+    
+    .settings-btn:hover {
+      background: rgba(255, 255, 255, 0.25);
+      transform: rotate(45deg);
+    }
+    
+    .settings-btn svg {
+      width: 22;
+      height: 22;
+    }
+
+    /* --- MODAL CÀI ĐẶT API --- */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+    
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    
+    .settings-modal {
+      background: rgba(30, 25, 50, 0.9);
+      backdrop-filter: blur(25px);
+      -webkit-backdrop-filter: blur(25px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 28px;
+      padding: 30px;
+      max-width: 450px;
+      width: 90%;
+      text-align: center;
+      color: #FFFFFF;
+      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.6);
+      transform: scale(0.9);
+      transition: transform 0.3s ease;
+    }
+    
+    .modal-overlay.active .settings-modal {
+      transform: scale(1);
+    }
+    
+    .settings-modal h3 {
+      font-size: 22px;
+      margin-bottom: 15px;
+      font-weight: 700;
+    }
+    
+    .settings-modal p {
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.7);
+      margin-bottom: 20px;
+      text-align: left;
+      line-height: 1.5;
+    }
+    
+    .modal-buttons {
+      display: flex;
+      gap: 15px;
+      margin-top: 10px;
+    }
+    
+    .modal-buttons button {
+      margin: 0;
+    }
+    
+    .modal-save {
+      background: linear-gradient(90deg, #9b5de5 0%, #f15bb5 100%) !important;
+      color: #ffffff !important;
+    }
+    
+    .modal-close {
+      background: rgba(255, 255, 255, 0.1) !important;
+      color: #ffffff !important;
+      border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    }
+
+    /* --- CẤU TRÚC CONTAINER MÀN HÌNH --- */
+    #options-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+      margin: 20px 0;
+    }
+
+    #options-container button {
+      margin: 8px auto !important;
+      width: 100%;
+    }
+
+    /* --- ĐIỀU CHỈNH GIAO DIỆN GAME SORT --- */
+    .sort-categories {
+      display: flex;
+      gap: 15px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 25px;
+    }
+
+    .sort-column {
+      flex: 1;
+      min-width: 160px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .sort-column h4 {
+      font-size: 16px;
+      font-weight: bold;
+      margin-top: 0;
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      color: #FFD166;
+    }
+
+    button.word-tile {
+      cursor: grab;
+      margin: 0 !important;
+      width: 100%;
+      max-width: 220px;
+      text-transform: none;
+    }
+
+    button.word-tile:active {
+      cursor: grabbing;
+    }
+
+    .sortable-ghost {
+      opacity: 0.2;
+      transform: scale(0.95);
+    }
+
+    /* --- ĐIỀU CHỈNH GIAO DIỆN GAME REWRITE --- */
+    #game-rewrite {
+      max-width: 550px !important;
+    }
+
+    #rewrite-input {
+      width: 100%;
+      max-width: 100%;
+      min-height: 80px;
+      font-size: 16px;
+      padding: 15px;
+      resize: vertical;
+      margin-bottom: 15px;
+    }
+
+    .rewrite-question {
+      font-size: 18px;
+      font-weight: 600;
+      margin: 20px 0;
+      line-height: 1.5;
+    }
+
+    /* --- CÁC THIẾT BỊ DI ĐỘNG (RESPONSIVE) --- */
+    @media (max-width: 480px) {
+      body {
+        padding: 10px;
+      }
+      
+      #screen-start {
+        padding-top: 310px;
+      }
+
+      .welcome-title-top, .welcome-title-bottom {
+        font-size: 30px;
+      }
+
+      .deco-cap-books { width: 90px; top: 4%; left: 4%; }
+      .deco-globe { width: 100px; top: 12%; }
+      .deco-open-book { width: 160px; top: 31%; }
+      .deco-stacked-books { width: 70px; top: 43%; right: 4%; }
+      .deco-coin-1 { width: 55px; right: 5%; }
+      .deco-coin-2 { width: 35px; left: 28%; }
+      .deco-coin-4 { width: 40px; left: 5%; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Nút mở cấu hình API ở góc phải -->
+  <button class="settings-btn" onclick="openSettings()" title="Cài đặt kết nối Google Sheets">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="3"></circle>
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+    </svg>
+  </button>
+
+  <!-- Modal cài đặt API URL -->
+  <div class="modal-overlay" id="settings-modal">
+    <div class="settings-modal">
+      <h3>Kết nối Google Sheets</h3>
+      <p>Nhập địa chỉ Web App của bạn để tải dữ liệu từ Google Sheets. Để trống để chạy chế độ Offline (Dữ liệu mẫu).</p>
+      <input type="text" id="api-url-input" class="name-input" placeholder="https://script.google.com/macros/s/.../exec" style="margin-bottom: 20px;">
+      <div class="modal-buttons">
+        <button class="modal-close" onclick="closeSettings()">Đóng</button>
+        <button class="modal-save" onclick="saveSettings()">Lưu cấu hình</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- === MÀN HÌNH BẮT ĐẦU === -->
+  <div id="screen-start">
+    <div class="welcome-title-container">
+      <div class="welcome-title-top">Welcome</div>
+      <div class="welcome-title-bottom">to <strong>FunQuiz</strong> Academy!</div>
+    </div>
+    <p class="start-subtext">Play, Learn, and Explore with Exciting Quizzes!</p>
+    
+    <select id="sheet-selector" class="custom-select">
+      <option value="">Đang tải danh sách bài học...</option>
+    </select>
+    
+    <button id="btn-start" onclick="startGame()" disabled style="opacity: 0.5;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M8 5V19L19 12L8 5Z" fill="currentColor"/>
+      </svg>
+      Bắt đầu chơi
+    </button>
+  </div>
+
+  <!-- === MÀN HÌNH ĐANG TẢI === -->
+  <div id="screen-loading" class="hidden">
+    <p>Đang tải dữ liệu từ Sheets, vui lòng đợi chút...</p>
+  </div>
+
+  <!-- === MÀN HÌNH TRẮC NGHIỆM (QUIZ) === -->
+  <div id="screen-quiz" class="hidden">
+    <p id="score-display"></p>
+    <p id="instruction-display" class="instruction-text"></p>
+    <h2 id="word-display">Word</h2>
+    <p id="hint-display" class="hint-text">Gợi ý sẽ hiện ở đây</p>
+    
+    <div id="options-container"></div>
+    <div id="feedback-container" class="hidden"></div>
+    
+    <br>
+    <button id="next-btn" class="hidden" onclick="nextQuestion()">Câu tiếp theo</button>
+  </div>
+
+  <!-- === MÀN HÌNH ĐIỀN KHUYẾT (FILL) === -->
+  <div id="game-fill" class="hidden">
+    <p id="fill-score-display" class="hint-text"></p>
+    <p class="instruction-display instruction-text"></p>
+    <h2 id="fill-question-display" style="line-height: 1.6; margin-bottom: 10px;"></h2>
+    
+    <div id="fill-hint-box" style="margin-bottom: 20px; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 6px;">
+      <span style="color: #FFD166; font-weight: bold; text-transform: uppercase; font-size: 0.9em;">Gợi ý: </span>
+      <span id="fill-hint-display" style="color: #cbd5e1; font-style: italic;"></span>
+    </div>
+    
+    <div id="fill-input-container">
+      <input type="text" id="fill-input" class="name-input" placeholder="Gõ đáp án vào đây..." style="text-align: center; font-size: 18px; font-weight: bold; letter-spacing: 1px;">
+      <button id="btn-check-fill" onclick="checkFillAnswer()">Kiểm tra</button>
+    </div>
+    
+    <div id="fill-feedback-container" class="hidden" style="margin-top: 15px;"></div>
+    
+    <br>
+    <button id="fill-next-btn" class="hidden" onclick="nextFillQuestion()">Câu tiếp theo</button>
+  </div>
+
+  <!-- === MÀN HÌNH PHÂN LOẠI (SORT) === -->
+  <div id="game-sort" class="hidden">
+    <p id="sort-score-display" class="hint-text" style="margin-bottom: 10px; font-weight: bold;"></p>
+    <p class="instruction-display instruction-text"></p>
+    <h2 style="margin-top: 0; margin-bottom: 25px;">Kéo thả từ vựng vào đúng cột 🧺</h2>
+    
+    <div id="sort-word-bank" class="sort-drop-zone" style="margin-bottom: 20px; min-height: 80px; display: flex; flex-direction: row; flex-wrap: wrap; justify-content: center; gap: 10px;"></div>
+    <div id="dynamic-categories" class="sort-categories"></div>
+    
+    <div id="sort-feedback" class="hidden"></div>
+    
+    <button id="btn-check-sort" onclick="checkSortAnswer()">Kiểm tra đáp án</button>
+    <button id="btn-next-sort" class="hidden" onclick="nextSortWord()">Câu tiếp theo ➜</button>
+  </div>
+
+  <!-- === MÀN HÌNH VIẾT LẠI CÂU (REWRITE) === -->
+  <div id="game-rewrite" class="hidden">
+    <p id="rewrite-score-display" class="hint-text" style="font-weight: bold;"></p>
+    <p class="instruction-display instruction-text"></p>
+    <h2 style="margin-top: 0; margin-bottom: 20px;">Viết Lại Câu ✍️</h2>
+    <div id="rewrite-question-display" class="rewrite-question"></div>
+    
+    <textarea id="rewrite-input" class="name-input" placeholder="Nhập câu trả lời của bạn vào đây..." autocomplete="off"></textarea>
+    
+    <div id="rewrite-feedback" class="hidden"></div>
+    
+    <button id="btn-check-rewrite" onclick="checkRewriteAnswer()">Kiểm tra đáp án</button>
+    <button id="btn-next-rewrite" class="hidden" onclick="nextRewriteQuestion()">Câu tiếp theo ➜</button>
+  </div>
+
+  <!-- === MÀN HÌNH KẾT QUẢ === -->
+  <div id="screen-result" class="hidden">
+    <h1>Hoàn thành!</h1>
+    <p id="final-score" style="font-size: 20px; margin: 20px 0;"></p>
+    
+    <div>
+      <input type="text" id="player-name" class="name-input" placeholder="Nhập tên của bạn">
+      <button id="btn-save" onclick="submitScore('Trắc nghiệm')">Lưu điểm</button>
+      <p id="save-msg" class="hidden success-msg">Đã lưu điểm thành công!</p>
+    </div>
+    
+    <br>
+    <button onclick="location.reload()">Chơi lại</button>
+  </div>
+
+  <!-- === LOGIC KẾT NỐI HYBRID API (GITHUB PAGES <=> GAS) === -->
+  <script>
+    // Kiểm tra xem có đang chạy trong môi trường Google Apps Script hay không
+    const isInsideGAS = (typeof google !== 'undefined' && google.script && google.script.run);
+    
+    // Đọc URL cấu hình Web App từ LocalStorage (chỉ dùng cho môi trường ngoài GAS)
+    let apiAppUrl = localStorage.getItem("GAS_WEB_APP_URL") || "";
+
+    // Mở/Đóng Settings Modal
+    function openSettings() {
+      document.getElementById("api-url-input").value = apiAppUrl;
+      document.getElementById("settings-modal").classList.add("active");
+    }
+
+    function closeSettings() {
+      document.getElementById("settings-modal").classList.remove("active");
+    }
+
+    function saveSettings() {
+      const url = document.getElementById("api-url-input").value.trim();
+      localStorage.setItem("GAS_WEB_APP_URL", url);
+      apiAppUrl = url;
+      closeSettings();
+      alert("Đã lưu cấu hình kết nối API! Trang web sẽ tải lại dữ liệu.");
+      location.reload();
+    }
+
+    // Nếu không chạy trong GAS, chúng ta mock `google.script.run` để gọi API qua fetch()
+    if (!isInsideGAS) {
+      console.log("Đang chạy ngoài Google Apps Script. Kích hoạt bộ chuyển đổi Hybrid API.");
+      
+      const createGasMock = () => {
+        let successHandler = () => {};
+        let failureHandler = () => {};
+        
+        const mock = {
+          withSuccessHandler: function(cb) {
+            successHandler = cb;
+            return this;
+          },
+          withFailureHandler: function(cb) {
+            failureHandler = cb;
+            return this;
+          }
+        };
+        
+        const functions = [
+          "getInstructionsConfig",
+          "getSheetNames",
+          "getGroupSortData",
+          "getRewriteData",
+          "getVocabData",
+          "saveScore",
+          "saveDetailedReport"
+        ];
+        
+        functions.forEach(funcName => {
+          mock[funcName] = function(...args) {
+            // Trường hợp chạy ngoại tuyến không có API: Trả về dữ liệu mẫu để chạy thử
+            if (!apiAppUrl) {
+              console.warn("Chưa cấu hình API URL. Đang trả về dữ liệu chạy thử (Offline).");
+              
+              if (funcName === "getSheetNames") {
+                setTimeout(() => successHandler([
+                  "Trắc Nghiệm - Câu Hỏi Mẫu", 
+                  "Điền từ - FILL_IN_THE_BLANK", 
+                  "Phân Loại - SORTING_GAME",
+                  "Viết Lại Câu - REWRITE_GAME"
+                ]), 400);
+              } else if (funcName === "getInstructionsConfig") {
+                setTimeout(() => successHandler({
+                  "Trắc Nghiệm": "Chọn đáp án đúng nhất.",
+                  "Điền từ": "Gõ từ chính xác vào ô trống.",
+                  "Phân Loại": "Xếp các từ vào đúng cột thích hợp.",
+                  "Viết Lại Câu": "Viết lại câu sao cho nghĩa không đổi."
+                }), 400);
+              } else if (funcName === "getVocabData") {
+                setTimeout(() => successHandler([
+                  { question: "Apple", correctAnswer: "Quả táo", options: ["Quả táo", "Quả chuối", "Quả cam", "Quả dưa"], explanation: "Apple trong tiếng Anh có nghĩa là quả táo.", hint: "Trái cây có vỏ đỏ hoặc xanh, giòn" },
+                  { question: "Banana", correctAnswer: "Quả chuối", options: ["Quả chuối", "Quả dâu", "Quả lê", "Củ khoai"], explanation: "Banana có nghĩa là quả chuối.", hint: "Trái cây dài, khi chín có màu vàng" },
+                  { question: "Orange", correctAnswer: "Quả cam", options: ["Quả cam", "Quả chanh", "Quả táo", "Quả mận"], explanation: "Orange có nghĩa là quả cam.", hint: "Trái cây nhiều vitamin C, hình tròn" },
+                  { question: "Grapes", correctAnswer: "Quả nho", options: ["Quả nho", "Quả táo", "Quả dứa", "Quả đào"], explanation: "Grapes có nghĩa là quả nho (số nhiều).", hint: "Mọc thành chùm, màu tím hoặc xanh" }
+                ]), 500);
+              } else if (funcName === "getGroupSortData") {
+                setTimeout(() => successHandler({
+                  categories: ["Danh Từ", "Động Từ"],
+                  items: [
+                    {"Danh Từ": "Student", "Động Từ": "Learn"},
+                    {"Danh Từ": "Teacher", "Động Từ": "Teach"},
+                    {"Danh Từ": "School", "Động Từ": "Study"},
+                    {"Danh Từ": "Book", "Động Từ": "Read"}
+                  ]
+                }), 500);
+              } else if (funcName === "getRewriteData") {
+                setTimeout(() => successHandler([
+                  { question: "I am too poor to buy a car. (ENOUGH)", answer: "I am not rich enough to buy a car", explanation: "Sử dụng cấu trúc 'not + adj + enough + to V' thay thế cho 'too + adj + to V'." },
+                  { question: "This is the first time I have read this book. (NEVER)", answer: "I have never read this book before", explanation: "Cấu trúc hiện tại hoàn thành diễn tả việc chưa từng làm gì trước đây." }
+                ]), 500);
+              } else {
+                setTimeout(() => successHandler("Thành công"), 300);
+              }
+              return;
+            }
+            
+            // Trường hợp có cấu hình API URL: Tiến hành gọi dữ liệu từ GAS Web App
+            fetch(apiAppUrl, {
+              method: "POST",
+              mode: "cors",
+              headers: {
+                "Content-Type": "text/plain;charset=utf-8"
+              },
+              body: JSON.stringify({
+                action: funcName,
+                arguments: args
+              })
+            })
+            .then(res => res.json())
+            .then(resData => {
+              if (resData.status === "success") {
+                successHandler(resData.data);
+              } else {
+                failureHandler(new Error(resData.message || "Lỗi xử lý API từ Google Sheets."));
+              }
+            })
+            .catch(err => {
+              console.error("Lỗi API kết nối:", err);
+              failureHandler(new Error("Không thể kết nối tới Google Apps Script API. Hãy chắc chắn bạn đã Deploy Web App và bật quyền truy cập công khai (Anyone)."));
+            });
+          };
+        });
+        
+        return mock;
+      };
+
+      window.google = window.google || {};
+      window.google.script = window.google.script || {};
+      
+      Object.defineProperty(window.google.script, 'run', {
+        get: function() {
+          return createGasMock();
+        }
+      });
+    }
+  </script>
+
+  <!-- === HIỆU ỨNG TRANG TRÍ CHÈN TỰ ĐỘNG === -->
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      // 1. Tự động chèn các mã SVG 3D trang trí vào nền của trang Web
+      const body = document.body;
+      const decoContainer = document.createElement("div");
+      decoContainer.className = "deco-container";
+      
+      const svgs = {
+        capBooks: `
+          <svg viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="book1" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#9C27B0" />
+                <stop offset="100%" stop-color="#4A148C" />
+              </linearGradient>
+              <linearGradient id="book2" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#E91E63" />
+                <stop offset="100%" stop-color="#880E4F" />
+              </linearGradient>
+              <linearGradient id="book3" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#2196F3" />
+                <stop offset="100%" stop-color="#0D47A1" />
+              </linearGradient>
+              <linearGradient id="capGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#37474F" />
+                <stop offset="100%" stop-color="#212121" />
+              </linearGradient>
+              <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                <feDropShadow dx="0" dy="8" stdDeviation="6" flood-color="#000000" flood-opacity="0.3"/>
+              </filter>
+            </defs>
+            <path d="M15,90 L95,90 L105,80 L25,80 Z" fill="url(#book3)" filter="url(#glow)"/>
+            <path d="M15,90 L25,80 L25,85 L15,95 Z" fill="#0A3C85" />
+            <path d="M15,95 L95,95 L105,85 L105,80 L95,90 L15,90 Z" fill="#ECEFF1" />
+            <path d="M20,77 L90,77 L98,69 L28,69 Z" fill="url(#book2)" filter="url(#glow)"/>
+            <path d="M20,77 L28,69 L28,73 L20,81 Z" fill="#6B093D" />
+            <path d="M20,81 L90,81 L98,73 L98,69 L90,77 L20,77 Z" fill="#ECEFF1" />
+            <path d="M25,64 L85,64 L92,57 L32,57 Z" fill="url(#book1)" filter="url(#glow)"/>
+            <path d="M25,64 L32,57 L32,61 L25,68 Z" fill="#310D61" />
+            <path d="M25,68 L85,68 L92,61 L92,57 L85,64 L25,64 Z" fill="#ECEFF1" />
+            <path d="M55,20 L95,30 L55,40 L15,30 Z" fill="url(#capGrad)" filter="url(#glow)" />
+            <path d="M55,20 L95,30 L55,33 L15,30 Z" fill="#455A64" />
+            <path d="M38,36 C38,46 72,46 72,36 L72,44 C72,50 38,50 38,44 Z" fill="#1C1C1C" />
+            <path d="M55,30 L30,34 L28,48" stroke="#FFD166" stroke-width="2" fill="none" stroke-linecap="round" />
+            <circle cx="28" cy="49" r="3" fill="#FFD166" />
+          </svg>
+        `,
+        globe: `
+          <svg viewBox="0 0 130 130" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <radialGradient id="oceanGrad" cx="40%" cy="30%" r="70%">
+                <stop offset="0%" stop-color="#80E5FF" />
+                <stop offset="60%" stop-color="#0088CC" />
+                <stop offset="100%" stop-color="#004466" />
+              </radialGradient>
+              <linearGradient id="landGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#A3E635" />
+                <stop offset="100%" stop-color="#4D7C0F" />
+              </linearGradient>
+              <radialGradient id="shadowOver" cx="50%" cy="50%" r="50%">
+                <stop offset="60%" stop-color="#000000" stop-opacity="0" />
+                <stop offset="100%" stop-color="#000000" stop-opacity="0.45" />
+              </radialGradient>
+            </defs>
+            <circle cx="65" cy="65" r="55" fill="#000000" opacity="0.25" />
+            <circle cx="65" cy="65" r="52" fill="url(#oceanGrad)" />
+            <path d="M30,35 C28,42 22,48 20,55 C24,58 35,50 38,45 C40,40 38,34 30,35 Z" fill="url(#landGrad)" />
+            <path d="M28,60 C32,68 38,78 35,92 C32,90 28,78 24,70 C24,65 26,62 28,60 Z" fill="url(#landGrad)" />
+            <path d="M65,30 C72,25 85,28 80,38 C76,42 74,48 85,52 C90,55 88,68 80,72 C75,75 68,68 62,60 C60,50 58,40 65,30 Z" fill="url(#landGrad)" />
+            <path d="M92,35 C100,38 108,45 105,52 C100,55 96,62 102,68 C98,75 92,72 90,65 C88,58 90,45 92,35 Z" fill="url(#landGrad)" />
+            <circle cx="98" cy="85" r="8" fill="url(#landGrad)" />
+            <circle cx="65" cy="65" r="52" fill="url(#shadowOver)" />
+            <circle cx="65" cy="65" r="52" stroke="#FFFFFF" stroke-width="1.5" opacity="0.35" />
+          </svg>
+        `,
+        openBook: `
+          <svg viewBox="0 0 200 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="coverGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stop-color="#9C27B0" />
+                <stop offset="100%" stop-color="#5E35B1" />
+              </linearGradient>
+              <linearGradient id="pageGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#FFFFFF" />
+                <stop offset="48%" stop-color="#F3F3F3" />
+                <stop offset="50%" stop-color="#E0E0E0" />
+                <stop offset="52%" stop-color="#F3F3F3" />
+                <stop offset="100%" stop-color="#FFFFFF" />
+              </linearGradient>
+              <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+                <feDropShadow dx="0" dy="12" stdDeviation="8" flood-color="#000000" flood-opacity="0.4"/>
+              </filter>
+            </defs>
+            <path d="M12,74 C50,94 95,78 100,75 C105,78 150,94 188,74 L188,80 C150,100 105,84 100,81 C95,84 50,100 12,80 Z" fill="url(#coverGrad)" filter="url(#shadow)" />
+            <path d="M15,70 C50,90 95,74 100,71 C105,74 150,90 185,70 L185,42 C150,62 105,46 100,43 C95,46 50,62 15,42 Z" fill="url(#pageGrad)" />
+            <path d="M30,52 C45,60 70,55 85,50" stroke="#B0BEC5" stroke-width="1.5" stroke-linecap="round" opacity="0.6" />
+            <path d="M30,60 C45,68 70,63 85,58" stroke="#B0BEC5" stroke-width="1.5" stroke-linecap="round" opacity="0.6" />
+            <path d="M30,68 C45,76 70,71 85,66" stroke="#B0BEC5" stroke-width="1.5" stroke-linecap="round" opacity="0.6" />
+            <path d="M115,50 C130,55 155,60 170,52" stroke="#B0BEC5" stroke-width="1.5" stroke-linecap="round" opacity="0.6" />
+            <path d="M115,58 C130,63 155,68 170,60" stroke="#B0BEC5" stroke-width="1.5" stroke-linecap="round" opacity="0.6" />
+            <path d="M115,66 C130,71 155,76 170,68" stroke="#B0BEC5" stroke-width="1.5" stroke-linecap="round" opacity="0.6" />
+            <path d="M100,15 L103,22 L110,23 L105,28 L106,35 L100,31 L94,35 L95,28 L90,23 L97,22 Z" fill="#FFD166" filter="url(#shadow)" />
+          </svg>
+        `,
+        stackedBooks: `
+          <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="pinkGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#FF758F" />
+                <stop offset="100%" stop-color="#FF385C" />
+              </linearGradient>
+              <linearGradient id="purpleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#B100E8" />
+                <stop offset="100%" stop-color="#6E0099" />
+              </linearGradient>
+            </defs>
+            <g transform="rotate(-15 50 65)">
+              <rect x="20" y="55" width="60" height="12" rx="2" fill="url(#purpleGrad)" />
+              <rect x="22" y="57" width="56" height="8" rx="1" fill="#FFFFFF" />
+              <line x1="20" y1="61" x2="80" y2="61" stroke="#4A0066" stroke-width="2" />
+            </g>
+            <g transform="rotate(8 50 45)">
+              <rect x="22" y="38" width="56" height="12" rx="2" fill="url(#pinkGrad)" />
+              <rect x="24" y="40" width="52" height="8" rx="1" fill="#FFFFFF" />
+              <line x1="22" y1="44" x2="78" y2="44" stroke="#990F29" stroke-width="2" />
+            </g>
+          </svg>
+        `,
+        coin: `
+          <svg viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="goldOuter" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#FFE57F" />
+                <stop offset="50%" stop-color="#FFC107" />
+                <stop offset="100%" stop-color="#FF8F00" />
+              </linearGradient>
+              <linearGradient id="goldInner" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#FFF8E1" />
+                <stop offset="100%" stop-color="#FFE082" />
+              </linearGradient>
+              <filter id="shadowCoin" x="-10%" y="-10%" width="120%" height="120%">
+                <feDropShadow dx="0" dy="5" stdDeviation="3" flood-color="#000000" flood-opacity="0.3"/>
+              </filter>
+            </defs>
+            <circle cx="30" cy="30" r="26" fill="url(#goldOuter)" filter="url(#shadowCoin)" />
+            <circle cx="30" cy="30" r="21" fill="#E6A100" />
+            <circle cx="30" cy="30" r="19" fill="url(#goldInner)" />
+            <path d="M30,19 L32.5,24.5 L38,25.2 L34,29 L35.2,34.5 L30,31.5 L24.8,34.5 L26,29 L22,25.2 L27.5,24.5 Z" fill="url(#goldOuter)" />
+          </svg>
+        `,
+        star: `
+          <svg viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="starGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#D7B6FF" />
+                <stop offset="100%" stop-color="#B282FF" />
+              </linearGradient>
+            </defs>
+            <path d="M15,2 L18.5,10 L27,11 L20.5,17 L22.5,25.5 L15,21 L7.5,25.5 L9.5,17 L3,11 L11.5,10 Z" fill="url(#starGrad)" />
+          </svg>
+        `
+      };
+
+      const createDecoItem = (svgContent, className) => {
+        const el = document.createElement("div");
+        el.className = `deco-item ${className}`;
+        el.innerHTML = svgContent;
+        decoContainer.appendChild(el);
+      };
+
+      createDecoItem(svgs.capBooks, "deco-cap-books");
+      createDecoItem(svgs.globe, "deco-globe");
+      createDecoItem(svgs.openBook, "deco-open-book");
+      createDecoItem(svgs.stackedBooks, "deco-stacked-books");
+      
+      createDecoItem(svgs.coin, "deco-coin-1");
+      createDecoItem(svgs.coin, "deco-coin-2");
+      createDecoItem(svgs.coin, "deco-coin-3");
+      createDecoItem(svgs.coin, "deco-coin-4");
+      
+      createDecoItem(svgs.star, "deco-star-1");
+      createDecoItem(svgs.star, "deco-star-2");
+      createDecoItem(svgs.star, "deco-star-3");
+
+      body.appendChild(decoContainer);
+    });
+  </script>
+
+  <!-- === LOGIC ĐIỀU KHIỂN GAME PHÁT TRIỂN TỪ SCRIPT.HTML CHÍNH === -->
+  <script>
+    let vocabData = [];
+    let currentQuestion = 0;
+    let score = 0;
+    let currentGameType = "QUIZ";
+    let detailedAnswersLog = [];
+    let currentSelectedSheet = "";
+    let tabInstructions = {};
+
+    // 1. TẢI CẤU HÌNH YÊU CẦU & BÀI HỌC KHI MỞ TRANG
+    google.script.run.withSuccessHandler(function(data) {
+      tabInstructions = data;
+    }).getInstructionsConfig();
+
+    google.script.run
+      .withFailureHandler(err => {
+        alert("Lỗi không thể tải danh sách bài học: " + err.message);
+      })
+      .withSuccessHandler(names => {
+        const selector = document.getElementById('sheet-selector');
+        selector.innerHTML = ''; 
+        
+        names.forEach(name => {
+          const option = document.createElement('option');
+          option.value = name;
+          option.text = "Chủ đề: " + name; 
+          selector.appendChild(option);
+        });
+        
+        const startBtn = document.getElementById('btn-start');
+        if (startBtn) {
+          startBtn.disabled = false;
+          startBtn.style.opacity = "1";
+        }
+      })
+      .getSheetNames();
+
+    // 2. KHỞI CHẠY TRÒ CHƠI
+    function startGame() {
+      const selectedSheet = document.getElementById('sheet-selector').value;
+      if (!selectedSheet) {
+        alert("Vui lòng đợi danh sách tải xong hoặc chọn một chủ đề!");
+        return;
+      }
+      detailedAnswersLog = [];
+      currentSelectedSheet = selectedSheet;
+      const baseName = selectedSheet.split('-')[0].trim();
+      const instruction = tabInstructions[baseName] || tabInstructions[selectedSheet] || ""; 
+      
+      document.querySelectorAll(".instruction-display").forEach(el => {
+          el.innerText = instruction;
+      });
+
+      const sheetNameUpper = selectedSheet.toUpperCase();
+      if (sheetNameUpper.includes("FILL")) {
+        currentGameType = "FILL";
+      } else if (sheetNameUpper.includes("SORT")) {
+        currentGameType = "SORT";
+      } else if (sheetNameUpper.includes("REWRITE")) {
+        currentGameType = "REWRITE";
+      } else {
+        currentGameType = "QUIZ";
+      }
+
+      document.getElementById('screen-start').classList.add('hidden');
+      document.getElementById('screen-loading').classList.remove('hidden');
+      
+      if (currentGameType === "SORT") {
+        google.script.run.withFailureHandler(handleLoadError).withSuccessHandler(onDataLoaded).getGroupSortData(selectedSheet); 
+      } else if (currentGameType === "REWRITE") {
+        google.script.run.withFailureHandler(handleLoadError).withSuccessHandler(onDataLoaded).getRewriteData(selectedSheet);
+      } else {
+        google.script.run.withFailureHandler(handleLoadError).withSuccessHandler(onDataLoaded).getVocabData(selectedSheet); 
+      }
+    }
+
+    function handleLoadError(error) {
+      alert("Lỗi tải dữ liệu: " + error.message);
+      document.getElementById('screen-loading').classList.add('hidden');
+      document.getElementById('screen-start').classList.remove('hidden');
+    }
+
+    function onDataLoaded(data) {
+      if (currentGameType === "QUIZ" && data.length < 4) { 
+        alert("Chủ đề trắc nghiệm này cần có ít nhất 4 từ vựng. Vui lòng thêm từ vào Sheet."); 
+        location.reload();
+        return; 
+      }
+      
+      document.getElementById('screen-loading').classList.add('hidden');
+
+      if (currentGameType === "FILL") {
+        vocabData = data.sort(() => Math.random() - 0.5);
+        document.getElementById('game-fill').classList.remove('hidden');
+        renderFillGame(); 
+      } 
+      else if (currentGameType === "SORT") {
+        document.getElementById('game-sort').classList.remove('hidden');
+        renderSortGame(data);
+      }
+      else if (currentGameType === "REWRITE") {
+        document.getElementById('game-rewrite').classList.remove('hidden');
+        renderRewriteGame(data); 
+      } 
+      else {
+        vocabData = data.sort(() => Math.random() - 0.5);
+        document.getElementById('screen-quiz').classList.remove('hidden');
+        loadQuestion(); 
+      }
+    }
+
+    // 3. LOGIC CHO TRÒ TRẮC NGHIỆM (QUIZ)
+    function loadQuestion() {
+      if (currentQuestion >= vocabData.length) { 
+        showResult(); 
+        return; 
+      }
+
+      const qObj = vocabData[currentQuestion];
+      document.getElementById('word-display').innerText = qObj.question;
+      document.getElementById('hint-display').innerText = qObj.hint || ""; 
+      document.getElementById('score-display').innerText = `Câu: ${currentQuestion + 1} / ${vocabData.length} | Điểm: ${score}`;
+      
+      document.getElementById('feedback-container').classList.add('hidden');
+      document.getElementById('next-btn').classList.add('hidden');
+      
+      const optionsContainer = document.getElementById('options-container');
+      optionsContainer.innerHTML = '';
+
+      const shuffledOptions = [...qObj.options].sort(() => Math.random() - 0.5); 
+
+      shuffledOptions.forEach(optText => {
+        const btn = document.createElement('button');
+        btn.innerText = optText;
+        btn.onclick = () => checkAnswer(optText, qObj.correctAnswer, btn, qObj.explanation);
+        optionsContainer.appendChild(btn);
+      });
+    }
+
+    function checkAnswer(selected, correct, btnObj, context) {
+      const buttons = document.getElementById('options-container').querySelectorAll('button');
+      buttons.forEach(b => b.disabled = true);
+      
+      const feedback = document.getElementById('feedback-container');
+      feedback.classList.remove('hidden'); 
+      document.getElementById('next-btn').classList.remove('hidden');
+
+      let formattedContext = "Không có giải thích chi tiết.";
+      if (context) {
+        formattedContext = context.replace(/\.\s+/g, '.<br><br>').replace(/\n/g, '<br>');
+      }
+
+      if (selected === correct) {
+        btnObj.style.backgroundColor = '#baffc9'; 
+        score++;
+        feedback.innerHTML = `<strong>✓ Chính xác!</strong><br><br>📝 <i>Giải thích:</i><br>${formattedContext}`;
+      } else {
+        btnObj.style.backgroundColor = '#ffb3ba'; 
+        buttons.forEach(b => { 
+          if (b.innerText === correct) b.style.backgroundColor = '#baffc9'; 
+        });
+        feedback.innerHTML = `<strong>✗ Sai rồi!</strong> Nghĩa đúng là: <b>${correct}</b><br><br>📝 <i>Giải thích:</i><br>${formattedContext}`;
+      }
+      
+      document.getElementById('score-display').innerText = `Câu: ${currentQuestion + 1} / ${vocabData.length} | Điểm: ${score}`;
+
+      const qObj = vocabData[currentQuestion];
+      detailedAnswersLog.push({
+        question: qObj.question,
+        userAnswer: selected,
+        correctAnswer: correct,
+        isCorrect: (selected === correct)
+      });
+    }
+    
+    function nextQuestion() { 
+      currentQuestion++; 
+      loadQuestion(); 
+    }
+
+    // 4. HIỂN THỊ KẾT QUẢ & LƯU ĐIỂM
+    function showResult() {
+      document.getElementById('screen-quiz').classList.add('hidden');
+      if (document.getElementById('game-fill')) document.getElementById('game-fill').classList.add('hidden');
+      if (document.getElementById('game-sort')) document.getElementById('game-sort').classList.add('hidden');
+      if (document.getElementById('game-rewrite')) document.getElementById('game-rewrite').classList.add('hidden');
+
+      document.getElementById('screen-result').classList.remove('hidden');
+      document.getElementById('final-score').innerHTML = `Điểm của bạn: <strong>${score} / ${vocabData.length}</strong>`;
+    }
+
+    function submitScore(gameType) {
+      const playerName = document.getElementById('player-name').value.trim();
+      if (playerName === "") { 
+        alert("Vui lòng nhập tên!"); 
+        return; 
+      }
+      
+      const btnSave = document.getElementById('btn-save');
+      btnSave.innerText = "Đang lưu..."; 
+      btnSave.disabled = true;
+      
+      google.script.run
+        .withFailureHandler(error => {
+          alert("Lỗi lưu điểm: " + error.message);
+          btnSave.innerText = "Lưu điểm";
+          btnSave.disabled = false;
+        })
+        .withSuccessHandler(() => {
+          document.getElementById('save-msg').classList.remove('hidden');
+          btnSave.classList.add('hidden');
+          document.getElementById('player-name').disabled = true;
+        })
+        .saveScore(playerName, score, vocabData.length);
+        
+      google.script.run.saveDetailedReport(playerName, currentSelectedSheet, detailedAnswersLog);
+    }
+  </script>
+
+  <!-- === LOGIC CHO GAME ĐIỀN TỪ (FILL.HTML) === -->
+  <script>
+    function renderFillGame() {
+      const qObj = vocabData[currentQuestion];
+      document.getElementById('fill-question-display').innerText = qObj.question;
+      
+      const hintBox = document.getElementById('fill-hint-box');
+      const hintDisplay = document.getElementById('fill-hint-display');
+      if (qObj.hint && qObj.hint.trim() !== "") {
+        hintDisplay.innerText = qObj.hint;
+        hintBox.style.display = "block";
+      } else {
+        hintBox.style.display = "none";
+      }
+      
+      document.getElementById('fill-score-display').innerText = `Câu: ${currentQuestion + 1} / ${vocabData.length} | Điểm: ${score}`;
+      
+      const inputField = document.getElementById('fill-input');
+      inputField.value = "";
+      inputField.disabled = false;
+      inputField.focus();
+      
+      document.getElementById('btn-check-fill').disabled = false;
+      document.getElementById('fill-feedback-container').classList.add('hidden');
+      document.getElementById('fill-next-btn').classList.add('hidden');
+    }
+
+    function checkFillAnswer() {
+      const userAnswer = document.getElementById('fill-input').value.trim();
+      if (!userAnswer) {
+        alert("Vui lòng nhập đáp án trước khi kiểm tra!");
+        return;
+      }
+      
+      const qObj = vocabData[currentQuestion];
+      const correct = qObj.correctAnswer.toString().trim();
+      
+      document.getElementById('fill-input').disabled = true;
+      document.getElementById('btn-check-fill').disabled = true;
+      
+      const feedback = document.getElementById('fill-feedback-container');
+      feedback.classList.remove('hidden');
+      document.getElementById('fill-next-btn').classList.remove('hidden');
+      
+      let formattedContext = "Không có giải thích chi tiết.";
+      if (qObj.explanation) {
+        formattedContext = qObj.explanation.replace(/\.\s+/g, '.<br><br>').replace(/\n/g, '<br>');
+      }
+
+      if (userAnswer.toLowerCase() === correct.toLowerCase()) {
+        score++;
+        feedback.innerHTML = `<strong class="success-msg">✓ Chính xác!</strong><br><br>📝 <i>Giải thích:</i><br>${formattedContext}`;
+        feedback.style.borderLeftColor = "#00F5D4";
+      } else {
+        feedback.innerHTML = `<strong>✗ Sai rồi!</strong> Đáp án đúng là: <b>${correct}</b><br><br>📝 <i>Giải thích:</i><br>${formattedContext}`;
+        feedback.style.borderLeftColor = "#FF4D6D";
+      }
+      
+      document.getElementById('fill-score-display').innerText = `Câu: ${currentQuestion + 1} / ${vocabData.length} | Điểm: ${score}`;
+      detailedAnswersLog.push({
+        question: qObj.question,
+        userAnswer: userAnswer,
+        correctAnswer: correct,
+        isCorrect: (userAnswer.toLowerCase() === correct.toLowerCase())
+      });
+    }
+
+    function nextFillQuestion() {
+      currentQuestion++;
+      if (currentQuestion >= vocabData.length) {
+        showResult();
+      } else {
+        renderFillGame();
+      }
+    }
+
+    document.getElementById('fill-input').addEventListener("keypress", function(event) {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        document.getElementById('btn-check-fill').click();
+      }
+    });
+  </script>
+
+  <!-- === LOGIC CHO GAME PHÂN LOẠI (GROUPSORT.HTML) === -->
+  <script>
+    let sortDataList = [];
+    let currentSortIndex = 0;
+    let sortableInstances = []; 
+    let gameCategories = []; 
+
+    function renderSortGame(dataObj) {
+      gameCategories = dataObj.categories;
+      sortDataList = dataObj.items.sort(() => Math.random() - 0.5);
+      
+      currentSortIndex = 0;
+      score = 0; 
+      vocabData = sortDataList; 
+      
+      sortableInstances.forEach(inst => inst.destroy());
+      sortableInstances = [];
+
+      const options = { group: 'shared', animation: 150, ghostClass: 'sortable-ghost' };
+      sortableInstances.push(new Sortable(document.getElementById('sort-word-bank'), options));
+
+      const catContainer = document.getElementById('dynamic-categories');
+      catContainer.innerHTML = ''; 
+
+      gameCategories.forEach((catName, index) => {
+        const colDiv = document.createElement('div');
+        colDiv.className = 'sort-column';
+        
+        const title = document.createElement('h4');
+        title.innerText = catName;
+        
+        const dropZone = document.createElement('div');
+        dropZone.id = 'box-' + index;
+        dropZone.className = 'sort-drop-zone';
+        dropZone.style.minHeight = '100px';
+        dropZone.style.display = 'flex';
+        dropZone.style.flexDirection = 'column';
+        dropZone.style.gap = '10px';
+        dropZone.style.alignItems = 'center';
+        
+        colDiv.appendChild(title);
+        colDiv.appendChild(dropZone);
+        catContainer.appendChild(colDiv);
+        
+        sortableInstances.push(new Sortable(dropZone, options));
+      });
+      
+      loadSortWordFamily();
+    }
+
+    function loadSortWordFamily() {
+      if (currentSortIndex >= sortDataList.length) {
+        showResult(); 
+        return;
+      }
+
+      const item = sortDataList[currentSortIndex];
+      document.getElementById('sort-score-display').innerText = `Câu: ${currentSortIndex + 1} / ${sortDataList.length} | Điểm: ${score}`;
+      
+      document.getElementById('sort-word-bank').innerHTML = '';
+      
+      gameCategories.forEach((_, index) => {
+        document.getElementById('box-' + index).innerHTML = '';
+      });
+      
+      document.getElementById('sort-feedback').classList.add('hidden');
+      document.getElementById('btn-check-sort').classList.remove('hidden');
+      document.getElementById('btn-next-sort').classList.add('hidden');
+
+      let wordsToPlace = [];
+      gameCategories.forEach(cat => {
+        if(item[cat] && item[cat] !== "") wordsToPlace.push(item[cat]);
+      });
+      wordsToPlace.sort(() => Math.random() - 0.5);
+
+      wordsToPlace.forEach(wordText => {
+        const tile = document.createElement('button');
+        tile.className = 'word-tile'; 
+        tile.innerText = wordText;
+        document.getElementById('sort-word-bank').appendChild(tile);
+      });
+    }
+
+    function checkSortAnswer() {
+      const item = sortDataList[currentSortIndex];
+      const feedback = document.getElementById('sort-feedback');
+      
+      if (document.getElementById('sort-word-bank').children.length > 0) {
+        feedback.innerHTML = '<strong>⚠️ Cậu nhớ kéo hết các từ vào giỏ nhé!</strong>';
+        feedback.classList.remove('hidden');
+        return;
+      }
+
+      const checkZone = (zoneId, correctText) => {
+        const zone = document.getElementById(zoneId);
+        if (!correctText) return zone.children.length === 0; 
+        if (zone.children.length !== 1) return false; 
+        return zone.children[0].innerText.trim() === correctText;
+      };
+
+      let isCorrect = true;
+      gameCategories.forEach((cat, index) => {
+        if (!checkZone('box-' + index, item[cat])) {
+          isCorrect = false;
+        }
+      });
+
+      feedback.classList.remove('hidden');
+
+      if (isCorrect) {
+        score++;
+        document.getElementById('sort-score-display').innerText = `Câu: ${currentSortIndex + 1} / ${sortDataList.length} | Điểm: ${score}`;
+        feedback.innerHTML = '<strong class="success-msg">✓ Chính xác! Phân loại rất chuẩn ✨</strong>';
+        
+        document.getElementById('btn-check-sort').classList.add('hidden');
+        document.getElementById('btn-next-sort').classList.remove('hidden');
+        
+        if(typeof confetti === 'function') {
+          confetti({ particleCount: 80, spread: 60, origin: { y: 0.6 } });
+        }
+      } else {
+        feedback.innerHTML = '<strong>✗ Chưa đúng rồi, thử xếp lại xem sao nhé! 😅</strong>';
+      }
+
+      let userAnswerArr = [];
+      let correctAnswerArr = [];
+
+      gameCategories.forEach((cat, index) => {
+        const zone = document.getElementById('box-' + index);
+        const userWord = (zone.children.length > 0) ? zone.children[0].innerText.trim() : "Trống";
+        userAnswerArr.push(`${cat}: ${userWord}`); 
+        if (item[cat]) {
+          correctAnswerArr.push(`${cat}: ${item[cat]}`);
+        }
+      });
+
+      const wordsToSort = Object.values(item).filter(w => w !== "").join(", ");
+
+      detailedAnswersLog.push({
+        question: "Phân loại từ: " + wordsToSort,
+        userAnswer: userAnswerArr.join(" | "), 
+        correctAnswer: correctAnswerArr.join(" | "),
+        isCorrect: isCorrect 
+      });
+    }
+
+    function nextSortWord() { 
+      currentSortIndex++; 
+      loadSortWordFamily(); 
+    }
+  </script>
+
+  <!-- === LOGIC CHO GAME VIẾT LẠI CÂU (REWRITE.HTML) === -->
+  <script>
+    let rewriteDataList = [];
+    let currentRewriteIndex = 0;
+
+    function renderRewriteGame(data) {
+      rewriteDataList = data.sort(() => Math.random() - 0.5);
+      currentRewriteIndex = 0;
+      score = 0; 
+      vocabData = rewriteDataList; 
+      loadRewriteQuestion();
+    }
+
+    function loadRewriteQuestion() {
+      if (currentRewriteIndex >= rewriteDataList.length) {
+        showResult(); 
+        return;
+      }
+
+      const item = rewriteDataList[currentRewriteIndex];
+      document.getElementById('rewrite-score-display').innerText = `Câu: ${currentRewriteIndex + 1} / ${rewriteDataList.length} | Điểm: ${score}`;
+      document.getElementById('rewrite-question-display').innerText = item.question;
+      
+      const inputField = document.getElementById('rewrite-input');
+      inputField.value = '';
+      inputField.disabled = false;
+      
+      document.getElementById('rewrite-feedback').classList.add('hidden');
+      document.getElementById('btn-check-rewrite').classList.remove('hidden');
+      document.getElementById('btn-next-rewrite').classList.add('hidden');
+    }
+
+    function checkRewriteAnswer() {
+      const item = rewriteDataList[currentRewriteIndex];
+      const inputField = document.getElementById('rewrite-input');
+      const rawUserAnswer = inputField.value.trim();
+      const feedback = document.getElementById('rewrite-feedback');
+      
+      if (rawUserAnswer === "") {
+        feedback.innerHTML = '<strong>⚠️ Cậu chưa nhập câu trả lời kìa!</strong>';
+        feedback.classList.remove('hidden');
+        return;
+      }
+
+      const normalize = (text) => text.toLowerCase().replace(/\s+/g, ' ').replace(/[.,!?]+$/, "");
+      const userAnswer = normalize(rawUserAnswer);
+      const correctAnswer = normalize(item.answer);
+
+      inputField.disabled = true;
+      feedback.classList.remove('hidden');
+
+      let formattedContext = item.explanation ? item.explanation.replace(/\.\s+/g, '.<br><br>').replace(/\n/g, '<br>') : "Không có giải thích chi tiết.";
+
+      if (userAnswer === correctAnswer) {
+        score++;
+        document.getElementById('rewrite-score-display').innerText = `Câu: ${currentRewriteIndex + 1} / ${rewriteDataList.length} | Điểm: ${score}`;
+        feedback.innerHTML = `
+          <strong class="success-msg">✓ Chính xác tuyệt đối! ✨</strong><br><br>
+          📝 <i>Giải thích:</i><br>${formattedContext}
+        `;
+        
+        if(typeof confetti === 'function') {
+          confetti({ particleCount: 80, spread: 60, origin: { y: 0.6 } });
+        }
+      } else {
+        feedback.innerHTML = `
+          <strong>✗ Chưa chính xác rồi! 😅</strong><br><br>
+          ✅ <b>Đáp án đúng:</b><br><span style="color: #00F5D4; font-weight: bold;">${item.answer}</span><br><br>
+          📝 <i>Giải thích:</i><br>${formattedContext}
+        `;
+      }
+      
+      document.getElementById('btn-check-rewrite').classList.add('hidden');
+      document.getElementById('btn-next-rewrite').classList.remove('hidden');
+      
+      detailedAnswersLog.push({
+        question: item.question,
+        userAnswer: rawUserAnswer, 
+        correctAnswer: item.answer,
+        isCorrect: (userAnswer === correctAnswer)
+      });
+    }
+
+    document.getElementById('rewrite-input').addEventListener("keypress", function(event) {
+      if (event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault();
+        document.getElementById('btn-check-rewrite').click();
+      }
+    });
+
+    function nextRewriteQuestion() { 
+      currentRewriteIndex++; 
+      loadRewriteQuestion(); 
+    }
+  </script>
+</body>
+</html>
